@@ -70,12 +70,12 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+
             <Button
+                android:id="@+id/Button"
                 android:layout_width="match_parent"
                 android:layout_height="256px"
-                android:id="@+id/Button"
-                android:text="Click here to save minutes of the current buffer."
-                android:onClick="getAudio"/>
+                android:text="Click here to save minutes of the current buffer." />
 
             <TextView
                 android:layout_width="match_parent"

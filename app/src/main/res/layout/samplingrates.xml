@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Set A Sample Rate"
+        android:id="@+id/Title"
+        android:layout_gravity="center_horizontal"
+        android:padding="10sp" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Altering the sample rate will wipe the recorded audio buffer. If you press OK now and tap the grab audio button on the main screen you will only get audio collected after you pressed this OK button."
+        android:id="@+id/message"
+        android:layout_gravity="center_horizontal"
+        android:padding="10sp" />
+    <RadioGroup
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/radioGroup"
+        android:orientation="vertical"
+        android:padding="10sp">
+        <RadioButton android:id="@+id/r44100"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="44100 (5.292 MB per minute)"/>
+        <RadioButton android:id="@+id/r22050"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="22050 (2.646 MB per minute)"/>
+        <RadioButton android:id="@+id/r16000"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="16000 (1.920 MB per minute)"/>
+        <RadioButton android:id="@+id/r11025"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="11025 (1.323 MB per minute)"/>
+        <RadioButton android:id="@+id/r8000"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="8000 (0.960 MB per minute)"/>
+    </RadioGroup>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal">
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ok"
+            android:id="@+id/ok_button" />
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:id="@+id/cancel_action" />
+    </LinearLayout>
+
+</LinearLayout>
