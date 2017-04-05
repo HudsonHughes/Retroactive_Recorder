@@ -26,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hughes.retrorecord.messages.MessageEvent;
+import com.hughes.retrorecord.recording.BytesToFile;
 import com.turhanoz.android.reactivedirectorychooser.event.OnDirectoryCancelEvent;
 import com.turhanoz.android.reactivedirectorychooser.event.OnDirectoryChosenEvent;
 import com.turhanoz.android.reactivedirectorychooser.ui.DirectoryChooserFragment;
@@ -186,11 +187,7 @@ public class SettingsFragment extends Fragment implements
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which) {
                             case DialogInterface.BUTTON_POSITIVE:
-                                try {
-                                    for (File file : new File(getContext().getApplicationContext().getFilesDir() + "/magic/").listFiles()) file.delete();
-                                } catch (Exception e) {
-
-                                }
+                                BytesToFile.getInstance(getContext()).wipeCache();
                                 break;
 
                             case DialogInterface.BUTTON_NEGATIVE:

@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -235,7 +236,9 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
         folder.setText(new MainApplication(getContext()).getRecordingDirectory());
         firstTime = (TextView) view.findViewById(R.id.firstTime);
         secondTime = (TextView) view.findViewById(R.id.secondTime);
+        recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(new ListAdapter(getActivity()));
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         mp = new MediaPlayer();
         seekBar.setEnabled(false);
         seekBar.setOnSeekBarChangeListener(this); // Important

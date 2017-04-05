@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-public class WavFileWriter implements Closeable {
+public class  WavFileWriter implements Closeable {
 
     private final WavAudioFormat pcmAudioFormat;
     private final PcmAudioOutputStream pos;

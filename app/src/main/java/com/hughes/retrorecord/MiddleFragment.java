@@ -16,6 +16,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.hughes.retrorecord.messages.MessageEvent;
+import com.hughes.retrorecord.recording.BytesToFile;
 import com.hughes.retrorecord.technology.ProgressPCM;
 import com.hughes.retrorecord.technology.WavAudioFormat;
 
@@ -205,13 +206,11 @@ public class MiddleFragment extends Fragment {
 
     public void refresh() {
         button.setText("click here to save the buffer of the past.");
-        int folder_length = 0;
+        long folder_length = 0;
         try {
-            for (File file : Arrays.asList(new File(getcontext().getFilesDir() + "/magic/").listFiles())) {
-                if (file.isFile())
-                    folder_length += file.length();
-            }
+            folder_length = BytesToFile.getInstance(getContext()).getLengthOfHash();
         } catch (Exception e) {
+            e.printStackTrace();
             folder_length = 0;
 
         }

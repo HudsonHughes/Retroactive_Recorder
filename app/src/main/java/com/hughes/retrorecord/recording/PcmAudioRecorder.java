@@ -1,4 +1,4 @@
-package com.hughes.retrorecord.technology;
+package com.hughes.retrorecord.recording;
 
 
 import android.app.Notification;
@@ -12,10 +12,7 @@ import android.media.MediaRecorder.AudioSource;
 import android.os.Build;
 import android.util.Log;
 
-import com.hughes.retrorecord.ByteRecorder;
-import com.hughes.retrorecord.MainActivity;
 import com.hughes.retrorecord.MainApplication;
-import com.hughes.retrorecord.R;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -43,7 +40,7 @@ public class PcmAudioRecorder {
     public File address = null;
     MainApplication HelperClass;
 
-    public static PcmAudioRecorder getInstanse(Context context) {
+    public static PcmAudioRecorder getInstance(Context context) {
         PcmAudioRecorder result = null;
         int i = 0;
         do {
@@ -69,19 +66,14 @@ public class PcmAudioRecorder {
 
     // The interval in which the recorded samples are output to the file
     // Used only in uncompressed mode, in milliseconds
-    private static final int TIMER_INTERVAL = 1000;
+    private static final int TIMER_INTERVAL = 120;
 
     // Recorder used for uncompressed recording
     private AudioRecord audioRecorder = null;
 
-    // Output file path
-    private String filePath = null;
-
     // Recorder state; see State
     private State          	state;
 
-    // File output stream
-    private BufferedOutputStream mOutputStream;
 
     //audio settings
     private int mAudioSource;
@@ -137,8 +129,7 @@ public class PcmAudioRecorder {
             } else {
                 mBitsPersample = 8;
             }
-            mPeriodInFrames = sampleRate * TIMER_INTERVAL / 1000;
-            //num of frames in a second is same as sample rate
+            mPeriodInFrames = sampleRate * 500 / 1000;		//num of frames in a second is same as sample rate
             //refer to android/4.1.1/frameworks/av/media/libmedia/AudioRecord.cpp, AudioRecord::getMinFrameCount method
             //we times 2 for ping pong use of record buffer
             mBufferSize = mPeriodInFrames * 2  * mNumOfChannels * mBitsPersample / 8;
@@ -154,30 +145,14 @@ public class PcmAudioRecorder {
             if (audioRecorder.getState() != AudioRecord.STATE_INITIALIZED) {
                 throw new Exception("AudioRecord initialization failed");
             }
-
+            setPositionListener(context);
             audioRecorder.setPositionNotificationPeriod(mPeriodInFrames);
-            filePath = null;
             state = State.INITIALIZING;
         } catch (Exception e) {
             if (e.getMessage() != null) {
                 Log.e(PcmAudioRecorder.class.getName(), e.getMessage());
             } else {
                 Log.e(PcmAudioRecorder.class.getName(), "Unknown error occured while initializing recording");
-            }
-            state = State.ERROR;
-        }
-    }
-
-    public void setOutputFile(String argPath) {
-        try {
-            if (state == State.INITIALIZING) {
-                filePath = argPath;
-            }
-        } catch (Exception e) {
-            if (e.getMessage() != null) {
-                Log.e(PcmAudioRecorder.class.getName(), e.getMessage());
-            } else {
-                Log.e(PcmAudioRecorder.class.getName(), "Unknown error occured while setting output path");
             }
             state = State.ERROR;
         }
@@ -194,8 +169,7 @@ public class PcmAudioRecorder {
     public void prepare() {
         try {
             if (state == State.INITIALIZING) {
-                if ((audioRecorder.getState() == AudioRecord.STATE_INITIALIZED) & (filePath != null)) {
-                    mOutputStream = new BufferedOutputStream(new FileOutputStream(filePath));
+                if ((audioRecorder.getState() == AudioRecord.STATE_INITIALIZED)) {
                     buffer = new byte[mPeriodInFrames*mBitsPersample/8*mNumOfChannels];
                     state = State.READY;
                 } else {
@@ -228,12 +202,7 @@ public class PcmAudioRecorder {
             stop();
         } else {
             if (state == State.READY){
-                try {
-                    mOutputStream.close(); // Remove prepared file
-                } catch (IOException e) {
-                    Log.e(PcmAudioRecorder.class.getName(), "I/O exception occured while closing output file");
-                }
-                (new File(filePath)).delete();
+
             }
         }
         if (audioRecorder != null) {
@@ -249,6 +218,30 @@ public class PcmAudioRecorder {
      * In case of exceptions the class is set to the ERROR state.
      *
      */
+
+    public void setPositionListener(final Context context){
+        audioRecorder.setRecordPositionUpdateListener(new AudioRecord.OnRecordPositionUpdateListener() {
+            //	periodic updates on the progress of the record head
+            public void onPeriodicNotification(AudioRecord recorder) {
+                if (State.STOPPED == state) {
+                    Log.d(PcmAudioRecorder.this.getClass().getName(), "recorder stopped");
+                    return;
+                }
+                audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
+                try {
+                    BytesToFile.getInstance(context).writeToFile(buffer);
+                } catch (IOException e) {
+                    Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
+                    e.printStackTrace();
+                }
+            }
+            //	reached a notification marker set by setNotificationMarkerPosition(int)
+            public void onMarkerReached(AudioRecord recorder) {
+
+            }
+        });
+    }
+
     public void reset(final Context context) {
         try {
             if (state != State.ERROR) {
@@ -257,27 +250,7 @@ public class PcmAudioRecorder {
                 if (audioRecorder.getState() != AudioRecord.STATE_INITIALIZED) {
                     throw new Exception("AudioRecord initialization failed");
                 }
-                audioRecorder.setRecordPositionUpdateListener(new AudioRecord.OnRecordPositionUpdateListener() {
-                    //	periodic updates on the progress of the record head
-                    public void onPeriodicNotification(AudioRecord recorder) {
-                        if (State.STOPPED == state) {
-                            Log.d(PcmAudioRecorder.this.getClass().getName(), "recorder stopped");
-                            return;
-                        }
-                        audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
-                        try {
-                            //mOutputStream.write(buffer); 		  // write audio data to file
-                            new RotateRAF(buffer, context, 5292000);
-                        } catch (IOException e) {
-                            Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
-                            e.printStackTrace();
-                        }
-                    }
-                    //	reached a notification marker set by setNotificationMarkerPosition(int)
-                    public void onMarkerReached(AudioRecord recorder) {
-
-                    }
-                });
+                setPositionListener(context);
                 audioRecorder.setPositionNotificationPeriod(mPeriodInFrames);
                 state = State.INITIALIZING;
             }
@@ -318,12 +291,6 @@ public class PcmAudioRecorder {
     public void stop() {
         if (state == State.RECORDING) {
             audioRecorder.stop();
-            try {
-                mOutputStream.close();
-            } catch(IOException e) {
-                Log.e(PcmAudioRecorder.class.getName(), "I/O exception occured while closing output file");
-                state = State.ERROR;
-            }
             state = State.STOPPED;
         } else {
             Log.e(PcmAudioRecorder.class.getName(), "stop() called on illegal state");

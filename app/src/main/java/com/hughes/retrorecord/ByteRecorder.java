@@ -1,5 +1,6 @@
 package com.hughes.retrorecord;
 
+import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -8,8 +9,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
+import android.support.annotation.Nullable;
 
-import com.hughes.retrorecord.technology.*;
+import com.hughes.retrorecord.messages.ShutdownEvent;
+import com.hughes.retrorecord.messages.SongEvent;
+import com.hughes.retrorecord.recording.*;
+
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,26 +24,33 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
-public class ByteRecorder extends Service {
+public class ByteRecorder extends IntentService {
     Context context;
     private NotificationManager mNM;
     private int NOTIFICATION = 1598;
     private PcmAudioRecorder mRecorder;
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(ShutdownEvent shutdownEvent) {
+
+    };
+
+    public ByteRecorder(String name) {
+        super(name);
+    }
+
     @Override
     public void onCreate() {
         context = this;
         mNM = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mRecorder = PcmAudioRecorder.getInstanse(context);
-        mRecorder.setOutputFile(new File(context.getFilesDir() + "/buffer.raw").getAbsolutePath());
+        mRecorder = PcmAudioRecorder.getInstance(context);
 
         if (PcmAudioRecorder.State.INITIALIZING == mRecorder.getState()) {
             mRecorder.prepare();
             mRecorder.start();
         } else if (PcmAudioRecorder.State.ERROR == mRecorder.getState()) {
             mRecorder.release();
-            mRecorder = PcmAudioRecorder.getInstanse(context);
-            mRecorder.setOutputFile(new File(context.getFilesDir() + "/buffer.raw").getAbsolutePath());
+            mRecorder = PcmAudioRecorder.getInstance(context);
         } else {
             mRecorder.stop();
             mRecorder.reset(context);
@@ -63,36 +77,18 @@ public class ByteRecorder extends Service {
     }
 
     @Override
+    protected void onHandleIntent(@Nullable Intent intent) {
+
+    }
+
+    @Override
     public void onDestroy() {
         if (null != mRecorder) {
             mRecorder.release();
         }
         cancelNotification();
-//        try {
-//            for (File file : new File(getApplicationContext().getFilesDir() + "/magicMic/").listFiles()) {
-//                file.delete();
-//            }
-//        }catch (Exception e){
-//
-//        }
 
-    }
 
-    public static void copyFile(File src, File dst) throws IOException
-    {
-        FileChannel inChannel = new FileInputStream(src).getChannel();
-        FileChannel outChannel = new FileOutputStream(dst).getChannel();
-        try
-        {
-            inChannel.transferTo(0, inChannel.size(), outChannel);
-        }
-        finally
-        {
-            if (inChannel != null)
-                inChannel.close();
-            if (outChannel != null)
-                outChannel.close();
-        }
     }
     private void showNotification() {
         Intent intent = new Intent(context, MainActivity.class);

@@ -1,0 +1,26 @@
+//Error Notification
+Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
+e.printStackTrace();
+context.stopService(new Intent(context, ByteRecorder.class));
+NotificationManager mNM = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+Intent intent = new Intent(context, MainActivity.class);
+
+PendingIntent pendingIntent = PendingIntent.getActivity(context,
+    NOTIFICATION, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+Notification.Builder builder = new Notification.Builder(context)
+    .setContentTitle("Retroactive Recorder")
+    .setContentText("Recording was interrupted. Try freeing some space.")
+    .setContentIntent(pendingIntent)
+    .setSmallIcon(R.mipmap.ic_launcher)
+    ;
+Notification n;
+
+if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+n = builder.build();
+} else {
+n = builder.getNotification();
+}
+
+n.flags |= Notification.FLAG_NO_CLEAR | Notification.FLAG_ONGOING_EVENT;
+mNM.notify(NOTIFICATION, n);

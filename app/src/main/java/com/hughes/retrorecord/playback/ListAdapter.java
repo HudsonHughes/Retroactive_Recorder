@@ -34,8 +34,8 @@ class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     ArrayList<File> fileArrayList = new ArrayList<>();
     Context context;
 
-    public ListAdapter(Context context){
-        context = context;
+    public ListAdapter(Context ctx){
+        context = ctx;
         mainApplication = new MainApplication(context);
     }
 
@@ -71,11 +71,12 @@ class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     public void onBindViewHolder(ListAdapter.ViewHolder holder, final int position) {
         File file = fileArrayList.get(position);
         holder.name.setText(file.getName());
-        Uri uri = Uri.parse(file.getAbsolutePath());
-        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        mmr.setDataSource(context.getApplicationContext(), uri);
-        String durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-        int duration = Integer.parseInt(durationStr);
+//        Uri uri = Uri.parse(file.getAbsolutePath());
+//        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+//        mmr.setDataSource(context, uri);
+//        String durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+//        int duration = Integer.parseInt(durationStr);
+        int duration = 0;
         holder.time.setText(String.format("%d:%d",
                 TimeUnit.MILLISECONDS.toMinutes(duration),
                 TimeUnit.MILLISECONDS.toSeconds(duration) -
