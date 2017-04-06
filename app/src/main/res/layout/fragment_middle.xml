@@ -10,11 +10,11 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="Max Buffer Length:"
         android:id="@+id/textView3"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
         android:paddingBottom="5sp"
-        android:paddingTop="5sp" />
+        android:paddingTop="5sp"
+        android:layout_below="@+id/status"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -39,7 +39,7 @@
         android:id="@+id/MaxLength"
         android:paddingTop="5sp"
         android:paddingBottom="5sp"
-        android:layout_alignParentTop="true"
+        android:layout_above="@+id/CurrentLength"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
 
@@ -62,9 +62,7 @@
         android:id="@+id/scrollView2"
         android:layout_below="@+id/textView4"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignRight="@+id/MaxLength"
-        android:layout_alignEnd="@+id/MaxLength">
+        android:layout_alignParentStart="true">
 
         <LinearLayout
             android:orientation="vertical"
@@ -75,7 +73,7 @@
                 android:id="@+id/Button"
                 android:layout_width="match_parent"
                 android:layout_height="256px"
-                android:text="Click here to save minutes of the current buffer." />
+                android:text="Click here to save the current buffer." />
 
             <TextView
                 android:layout_width="match_parent"
@@ -103,19 +101,19 @@
                 android:padding="10sp" />
 
             <Button
+                android:id="@+id/goProButtonMiddle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Want more than 5 minutes?"
                 android:onClick="goPro"
-                android:id="@+id/GoPro" />
+                android:text="Want more than 5 minutes?" />
 
             <Button
+                android:id="@+id/helpButtonMiddle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Need Help?"
-                android:id="@+id/help"
                 android:layout_gravity="center_horizontal"
-                android:onClick="helpAct"/>
+                android:onClick="helpAct"
+                android:text="Need Help?" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -132,5 +130,17 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:lineSpacingExtra="14sp"
+        android:padding="16dp"
+        android:textAlignment="center"
+        android:textSize="30sp"
+        android:textStyle="bold" />
 
 </RelativeLayout>

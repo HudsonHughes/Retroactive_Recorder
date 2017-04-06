@@ -8,5 +8,5 @@ import java.io.File;
 
 public class SongEvent {
     public File file;
-    public SongEvent(File track) {track = file;}
+    public SongEvent(File track) {file = track;}
 }

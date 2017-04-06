@@ -1,5 +1,6 @@
 package com.hughes.retrorecord.playback;
 
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,7 +18,7 @@ import android.widget.TextView;
 
 import com.hughes.retrorecord.MainApplication;
 import com.hughes.retrorecord.R;
-import com.hughes.retrorecord.messages.MessageEvent;
+import com.hughes.retrorecord.messages.RefreshEvent;
 import com.hughes.retrorecord.messages.SongEvent;
 
 import org.greenrobot.eventbus.EventBus;
@@ -25,6 +26,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 import butterknife.BindView;
@@ -91,12 +93,12 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
         return fragment;
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessageEvent(MessageEvent event) {
-        String message = event.message;
-        if(message == "Playback:Refresh"){
 
-        }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(RefreshEvent event) {
+        Log.d("Hudson", "Refresh Event");
+        refreshMusicList();
     };
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -109,29 +111,62 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
     // Handler to update UI timer, progress bar etc,.
     private Handler mHandler = new Handler();
 
-    public void  playSong(File song){
+    public void playSong(final File song){
+        if(song == currentTrack)
+            return;
+        Log.d("Hudson", song.getAbsolutePath());
         // Play song
         try {
-            mp.reset();
-            mp.setDataSource(song.getAbsolutePath());
+            try{
+                mp.reset();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+             //song.getAbsolutePath()));
+            FileInputStream fileInputStream = new FileInputStream(song.getAbsolutePath());
+            mp = new MediaPlayer();
+            mp.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                @Override
+                public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+                    Log.d("Hudson", "Error");
+                    resetView();
+                    return false;
+                }
+            });
+            mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mediaPlayer) {
+                    Log.d("Hudson", "Completion");
+                    mp.seekTo(0);
+                    mp.pause();
+                    pauseButton.setEnabled(true);
+                }
+            });
+            mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mp.setDataSource(fileInputStream.getFD());
             mp.prepare();
-            mp.start();
+            mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mediaPlayer) {
+                    mp.start();
+                    pauseButton.setEnabled(true);
+                    currentlyPlaying.setText("Current Track: " + song.getName());
+                    currentTrack = song;
+                    seekBar.setEnabled(true);
+                    // set Progress bar values
+                    seekBar.setProgress(0);
+                    seekBar.setMax(100);
+                    // Updating progress bar
+                    updateProgressBar();
+                }
+            });
 
-            currentlyPlaying.setText("Current Track: " + song.getName());
-            currentTrack = song;
 
-            seekBar.setEnabled(true);
-            // set Progress bar values
-            seekBar.setProgress(0);
-            seekBar.setMax(100);
-
-            // Updating progress bar
-            updateProgressBar();
+        } catch (IOException e) {
+            e.printStackTrace();
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
         } catch (IllegalStateException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -142,21 +177,30 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
 
     private Runnable mUpdateTimeTask = new Runnable() {
         public void run() {
-            long totalDuration = mp.getDuration();
-            long currentDuration = mp.getCurrentPosition();
+            try {
+                if(mp.isPlaying()){
+                    pauseButton.setImageResource(android.R.drawable.ic_media_pause);
+                }else{
+                    pauseButton.setImageResource(android.R.drawable.ic_media_play);
+                }
+                long totalDuration = mp.getDuration();
+                long currentDuration = mp.getCurrentPosition();
 
-            // Displaying Total Duration time
-            secondTime.setText(""+milliSecondsToTimer(totalDuration));
-            // Displaying time completed playing
-            firstTime.setText(""+milliSecondsToTimer(currentDuration));
+                // Displaying Total Duration time
+                secondTime.setText("" + milliSecondsToTimer(totalDuration));
+                // Displaying time completed playing
+                firstTime.setText("" + milliSecondsToTimer(currentDuration));
 
-            // Updating progress bar
-            int progress = (int)(getProgressPercentage(currentDuration, totalDuration));
-            //Log.d("Progress", ""+progress);
-            seekBar.setProgress(progress);
+                // Updating progress bar
+                int progress = (int) (getProgressPercentage(currentDuration, totalDuration));
+                //Log.d("Progress", ""+progress);
+                seekBar.setProgress(progress);
 
-            // Running this thread after 100 milliseconds
-            mHandler.postDelayed(this, 100);
+                // Running this thread after 100 milliseconds
+                mHandler.postDelayed(this, 100);
+            }catch (IllegalStateException e){
+                resetView();
+            }
         }
     };
 
@@ -219,7 +263,29 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
     @Override
     public void onResume() {
         super.onResume();
+        Log.d("Hudson", "onResume");
+        resetView();
         refreshMusicList();
+
+    }
+
+    public void resetView(){
+        try{
+            mp.reset();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        currentlyPlaying.setText("");
+        currentTrack = null;
+        seekBar.setEnabled(false);
+        // set Progress bar values
+        seekBar.setProgress(0);
+        seekBar.setMax(100);
+        pauseButton.setEnabled(false);
+        pauseButton.setImageResource(android.R.drawable.ic_media_play);
+        firstTime.setText(milliSecondsToTimer(0));
+        secondTime.setText(milliSecondsToTimer(0));
+        // Updating progress bar
     }
 
     @Override
@@ -246,6 +312,7 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
         pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.d("Hudson", "pausePressed");
                 if(mp.isPlaying()){
                     if(mp != null && currentTrack != null){
                         mp.pause();
@@ -267,8 +334,8 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
 
     public void refreshMusicList(){
         folder.setText(new MainApplication(getContext()).getRecordingDirectory());
-        ListAdapter listAdapter = (ListAdapter) recyclerView.getAdapter();
-        listAdapter.refresh();
+        ListAdapter listAdapter = new ListAdapter(getContext());
+        recyclerView.setAdapter(listAdapter);
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -308,6 +375,7 @@ public class PlaybackFragment extends Fragment implements MediaPlayer.OnErrorLis
         currentTrack = null;
         seekBar.setProgress(0);
         seekBar.setEnabled(false);
+        resetView();
         return false;
     }
 

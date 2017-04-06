@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -17,8 +16,7 @@ public class MyReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         // TODO: This method is called when the BroadcastReceiver is receiving
         // an Intent broadcast.
-        SharedPreferences settings = context.getSharedPreferences("AppOn", 0);
-        if(settings.getBoolean("AppOn", false)){
+        if(new MainApplication(context).getStartOnBoot()){
             Log.d("Hudson Hughes", "Service Started");
 
             Intent myIntent = new Intent(context, BootReceiver.class);

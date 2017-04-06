@@ -1,6 +1,5 @@
 package com.hughes.retrorecord;
 
-import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -9,22 +8,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
+import android.widget.Toast;
 
 import com.hughes.retrorecord.messages.ShutdownEvent;
-import com.hughes.retrorecord.messages.SongEvent;
-import com.hughes.retrorecord.recording.*;
+import com.hughes.retrorecord.recording.PcmAudioRecorder;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.FileChannel;
-
-public class ByteRecorder extends IntentService {
+public class ByteRecorder extends Service {
     Context context;
     private NotificationManager mNM;
     private int NOTIFICATION = 1598;
@@ -35,10 +27,6 @@ public class ByteRecorder extends IntentService {
 
     };
 
-    public ByteRecorder(String name) {
-        super(name);
-    }
-
     @Override
     public void onCreate() {
         context = this;
@@ -48,6 +36,12 @@ public class ByteRecorder extends IntentService {
         if (PcmAudioRecorder.State.INITIALIZING == mRecorder.getState()) {
             mRecorder.prepare();
             mRecorder.start();
+            if(PcmAudioRecorder.State.RECORDING != mRecorder.getState()){
+                Toast.makeText(context, "Failed to start recording", Toast.LENGTH_SHORT).show();
+                mRecorder.release();
+                stopSelf();
+                return;
+            }
         } else if (PcmAudioRecorder.State.ERROR == mRecorder.getState()) {
             mRecorder.release();
             mRecorder = PcmAudioRecorder.getInstance(context);
@@ -76,10 +70,6 @@ public class ByteRecorder extends IntentService {
         return null;
     }
 
-    @Override
-    protected void onHandleIntent(@Nullable Intent intent) {
-
-    }
 
     @Override
     public void onDestroy() {
@@ -87,15 +77,11 @@ public class ByteRecorder extends IntentService {
             mRecorder.release();
         }
         cancelNotification();
-
-
     }
     private void showNotification() {
         Intent intent = new Intent(context, MainActivity.class);
-
         PendingIntent pendingIntent = PendingIntent.getActivity(context,
                 NOTIFICATION, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
         Notification.Builder builder = new Notification.Builder(context)
                 .setContentTitle("Retroactive Recorder")
                 .setContentText("Currently Recording")

@@ -13,7 +13,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_above="@+id/button">
+        android:layout_above="@+id/goProButtonSettings">
 
         <LinearLayout
             android:orientation="vertical"
@@ -65,11 +65,14 @@
                 android:text="Change"
                 android:id="@+id/BufferSizeButton"
                 android:layout_gravity="center_horizontal" />
+
             <TextView
+                android:id="@+id/SampleView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:id="@+id/SampleView" />
+                android:textAlignment="center"
+                android:textSize="18sp" />
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -81,11 +84,14 @@
                 android:layout_height="wrap_content"
                 android:text="Wipe Recording Buffer"
                 android:id="@+id/DeleteButton" />
+
             <TextView
+                android:id="@+id/PathView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:id="@+id/PathView" />
+                android:textAlignment="center"
+                android:textSize="18sp" />
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -95,24 +101,25 @@
 
         </LinearLayout>
     </ScrollView>
+
     <Button
+        android:id="@+id/helpButtonSettings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Need Help?"
-        android:id="@+id/help"
-        android:onClick="helpAct"
-        android:layout_above="@+id/button"
-        android:layout_alignRight="@+id/scrollView"
+        android:layout_above="@+id/goProButtonSettings"
         android:layout_alignEnd="@+id/scrollView"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/scrollView"
+        android:onClick="helpAct"
+        android:text="Need Help?" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Want to save more than 5 minutes. Go pro."
         android:onClick="goPro"
-        android:id="@+id/button"
+        android:id="@+id/goProButtonSettings"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"

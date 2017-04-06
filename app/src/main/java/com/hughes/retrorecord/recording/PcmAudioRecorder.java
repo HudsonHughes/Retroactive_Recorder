@@ -1,26 +1,16 @@
 package com.hughes.retrorecord.recording;
 
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
-import android.os.Build;
 import android.util.Log;
 
 import com.hughes.retrorecord.MainApplication;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Note: Sample vs Frame
@@ -39,6 +29,10 @@ public class PcmAudioRecorder {
     private int mNumOfChannels = 1;
     public File address = null;
     MainApplication HelperClass;
+    Context context;
+    AudioRecordRunnable audioRecordRunnable = new AudioRecordRunnable();
+    Thread recordThread = new Thread(audioRecordRunnable);
+
 
     public static PcmAudioRecorder getInstance(Context context) {
         PcmAudioRecorder result = null;
@@ -113,6 +107,7 @@ public class PcmAudioRecorder {
 
 
     public PcmAudioRecorder(int audioSource, int sampleRate, int channelConfig, int audioFormat, final Context context ) {
+        this.context = context;
         HelperClass = new MainApplication(context.getApplicationContext());
         try {
             mAudioSource = audioSource;
@@ -199,6 +194,7 @@ public class PcmAudioRecorder {
      */
     public void release() {
         if (state == State.RECORDING) {
+                state = State.STOPPED;
             stop();
         } else {
             if (state == State.READY){
@@ -227,13 +223,7 @@ public class PcmAudioRecorder {
                     Log.d(PcmAudioRecorder.this.getClass().getName(), "recorder stopped");
                     return;
                 }
-                audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
-                try {
-                    BytesToFile.getInstance(context).writeToFile(buffer);
-                } catch (IOException e) {
-                    Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
-                    e.printStackTrace();
-                }
+
             }
             //	reached a notification marker set by setNotificationMarkerPosition(int)
             public void onMarkerReached(AudioRecord recorder) {
@@ -272,11 +262,12 @@ public class PcmAudioRecorder {
             //address = new File(context.getFilesDir() + "/magic/" + String.valueOf(System.currentTimeMillis()/30000) + ".wav");
             audioRecorder.startRecording();
             audioRecorder.read(buffer, 0, buffer.length);	//[TODO: is this necessary]read the existing data in audio hardware, but don't do anything
+            Log.d("Hudson", "Started Recording");
             state = State.RECORDING;
+            recordThread.start();
         } else {
             Log.e(PcmAudioRecorder.class.getName(), "start() called on illegal state");
             state = State.ERROR;
-
         }
     }
 
@@ -297,4 +288,23 @@ public class PcmAudioRecorder {
             state = State.ERROR;
         }
     }
+
+    class AudioRecordRunnable implements Runnable
+    {
+        public void run()
+        {
+            while (state == State.RECORDING)
+            {
+                audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
+                try {
+                    BytesToFile.getInstance(context).writeToFile(buffer);
+                } catch (IOException e) {
+                    Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
 }

@@ -2,12 +2,13 @@ package com.hughes.retrorecord;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.util.Log;
+
+import com.github.pwittchen.prefser.library.Prefser;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -21,8 +22,10 @@ import static android.content.Context.ACTIVITY_SERVICE;
 
 public class MainApplication {
     Context context;
+    Prefser prefs;
     public MainApplication(Context ctx){
         context = ctx;
+        prefs = new Prefser(context);
     }
 
     public boolean isServiceRunning() {
@@ -124,7 +127,6 @@ public class MainApplication {
     }
     public int getSAMPLERATE(){
         int SAMPLING_RATE = 8000;
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
         for (int rate : new int[]{44100, 22050, 16000, 11025, 8000}) {  // add the rates you wish to check against
             int bufferSize = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
             if (bufferSize > 0) {
@@ -133,31 +135,43 @@ public class MainApplication {
                 break;
             }
         }
-        SAMPLING_RATE = preferences.getInt("SAMPLING_RATE", SAMPLING_RATE);
+        SAMPLING_RATE = prefs.get("SAMPLING_RATE", Integer.class, SAMPLING_RATE);
         return SAMPLING_RATE;
     }
+
+    public boolean getStartTutorial(){
+        return prefs.get("tutorial", Boolean.class, false);
+    }
+
+    public boolean setStartTutorial(boolean value){
+        prefs.put("tutorial", value);
+        return value;
+    }
+
+    public boolean getStartOnBoot(){
+        return prefs.get("supposedToBeOn", Boolean.class, false);
+    }
+
+    public boolean setStartOnBoot(boolean value){
+        prefs.put("supposedToBeOn", value);
+        return value;
+    }
+
     public int setSAMPLERATE(int SAMPLERATE){
         int SAMPLING_RATE = 8000;
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("SAMPLING_RATE", SAMPLERATE);
-        editor.commit();
-        SAMPLING_RATE = preferences.getInt("SAMPLING_RATE", SAMPLING_RATE);
+        prefs.put("SAMPLING_RATE", SAMPLERATE);
+        SAMPLING_RATE = prefs.get("SAMPLING_RATE", Integer.class,SAMPLING_RATE);
         return SAMPLING_RATE;
     }
 
     public int getTIME(){
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        int TIME = preferences.getInt("TIME", 5);
+        int TIME = prefs.get("TIME", Integer.class, 5);
         return TIME;
     }
     public int setTIME(int TIME){
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        int preTIME = preferences.getInt("TIME", TIME);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("TIME", TIME);
-        editor.commit();
-        TIME = preferences.getInt("TIME", TIME);
+        int preTIME = prefs.get("TIME", Integer.class ,TIME);
+        prefs.put("TIME", TIME);
+        TIME = prefs.get("TIME", Integer.class, TIME);
         Log.d("Hudson Hughes", "New Time: " + String.valueOf(TIME));
         if(TIME < preTIME){
 
@@ -166,43 +180,36 @@ public class MainApplication {
     }
 
     public int getAMOUNT(){
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        int TIME = preferences.getInt("AMOUNT", 5);
+        int TIME = prefs.get("AMOUNT", Integer.class, 5);
         return TIME;
     }
     public int setAMOUNT(int AMOUNT){
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("AMOUNT", AMOUNT);
         if(AMOUNT > 0)
-            editor.commit();
-        AMOUNT = preferences.getInt("AMOUNT", AMOUNT);
+            prefs.put("AMOUNT", AMOUNT);
+        AMOUNT = prefs.get("AMOUNT", Integer.class, AMOUNT);
         Log.d("Hudson Hughes", "New Time: " + String.valueOf(AMOUNT));
         return AMOUNT;
     }
 
-    public String generateStamp() {
+    public String generateStamp(int extra) {
         String mFileName = getRecordingDirectory();
         if (!new File(mFileName).exists()) {
             new File(mFileName).mkdir();
         }
-        mFileName += getCurrentTimeStamp() + ".wav";
-        return mFileName;
+        if(extra > 0)
+            return mFileName + "/" + getCurrentTimeStamp() + "(" + String.valueOf(extra) + ")" + ".wav";
+        return mFileName + "/" + getCurrentTimeStamp() + ".wav";
     }
 
     public String setRecordingDirectory(String path) {
         String mFileName = path;
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString("PATH", path);
-        editor.commit();
+        prefs.put("PATH", path);
         return mFileName;
     }
 
     public String getRecordingDirectory() {
-        SharedPreferences preferences = context.getSharedPreferences("settings", context.MODE_PRIVATE);
         String mFileName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/RetroactiveRecorder/";
-        mFileName = preferences.getString("PATH", mFileName ) + "/";
+        mFileName = prefs.get("PATH", String.class, mFileName );
         if (!new File(mFileName).exists()) {
             new File(mFileName).mkdir();
         }
@@ -210,7 +217,7 @@ public class MainApplication {
     }
 
     public static String getCurrentTimeStamp() {
-        SimpleDateFormat sdfDate = new SimpleDateFormat("dd-MM-yy_HH:mm:ss");//dd/MM/yyyy
+        SimpleDateFormat sdfDate = new SimpleDateFormat("MM-dd-yy_HH:mm:ss");//dd/MM/yyyy
         Date now = new Date();
         String strDate = sdfDate.format(now);
         return strDate;

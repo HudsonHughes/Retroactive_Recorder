@@ -2,7 +2,7 @@ package com.hughes.retrorecord;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,15 +17,10 @@ import android.widget.TextView;
 
 import com.hughes.retrorecord.messages.MessageEvent;
 import com.hughes.retrorecord.recording.BytesToFile;
-import com.hughes.retrorecord.technology.ProgressPCM;
-import com.hughes.retrorecord.technology.WavAudioFormat;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-
-import java.io.File;
-import java.util.Arrays;
 
 import butterknife.ButterKnife;
 
@@ -39,6 +34,37 @@ import butterknife.ButterKnife;
  * create an instance of this fragment.
  */
 public class MiddleFragment extends Fragment {
+
+    public void helpAct(View view){
+        String helpMessage = "WARNING: Using the task manager to close the application will temporarily interrupt the recording of audio. Interuptting the audio recording via the task manager or settings menu will not wipe the audio buffer. So if you save a file in which the recording was interrupted the audio will skip from where the recording was paused to when it was resumed.\n" +
+                "Retroactive Recording is a retroactive audio recording app. The app is constantly recording audio while it is activated but only ever keeps the most recent 1 to 30 minutes of data." +
+                " At any time you can tap the save audio button on the main screen to save previously recorded audio. For example, if you turn the app on in the beginning of the day, keep it on and later in the day, someone says something that you want a recording of, you can tap the save audio button and your device will store the past 1 to 30 minutes in a WAV audio file for later listening." +
+                " While the app is constantly recording audio, it will only occupy up to 30 minutes worth of audio data in the memory." +
+                " In the event that your device runs out of storage space the app will cease to operate.";
+        //startActivity(new Intent(getContext(), HelpActivity.class));
+        android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(getContext());
+// Add the buttons
+        builder.setMessage(helpMessage);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked OK button
+            }
+        });
+// Set other dialog properties
+
+// Create the AlertDialog
+        android.support.v7.app.AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    public void goPro(View view){
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.hughes.retrorecordpro")));
+        } catch (android.content.ActivityNotFoundException anfe) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.hughes.retrorecordpro")));
+        }
+    }
+
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -49,16 +75,17 @@ public class MiddleFragment extends Fragment {
             " While the app is constantly recording audio, it will only occupy up to 30 minutes worth of audio data in the memory." +
             " In the event that your device runs out of storage space the app will cease to operate.";
     // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-    long first = 0;
-    long latest = 0;
     SeekBar seekBar;
     TextView timeLabel;
     Button button;
-    TextView MaxLabel;
-    TextView CurrentLength;
-
+    TextView maxLabel;
+    TextView currentLength;
+    TextView status;
+    Button goProButton;
+    Button helpButton;
+    int periods = 0;
+    long timeInBuffer = 0;
+    int lengthOfBuffer = 0;
     private OnFragmentInteractionListener mListener;
 
     public MiddleFragment() {
@@ -103,7 +130,6 @@ public class MiddleFragment extends Fragment {
     private Runnable onEverySecond = new Runnable() {
         public void run() {
             try {
-
                 refresh();
             } catch (Exception e) {
 
@@ -117,17 +143,16 @@ public class MiddleFragment extends Fragment {
         super.onCreate(savedInstanceState);
     }
 
-    MainApplication HelperClass;
+    MainApplication mainApplication;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_middle, container, false);
         ButterKnife.bind(getActivity());
-        HelperClass = new MainApplication(getcontext().getApplicationContext());
+        mainApplication = new MainApplication(getcontext().getApplicationContext());
 
-        final SharedPreferences sharedPreferences = getcontext().getSharedPreferences("settings", Context.MODE_PRIVATE);
-        if (sharedPreferences.getBoolean("showHelp", true)) {
+        if (!new MainApplication(getContext()).getStartOnBoot()) {
             //startActivity(new Intent(getcontext(), HelpActivity.class));
 
             AlertDialog.Builder builder = new AlertDialog.Builder(getcontext());
@@ -137,9 +162,7 @@ public class MiddleFragment extends Fragment {
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     // User clicked OK button
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putBoolean("showHelp", false);
-                    editor.commit();
+                    mainApplication.setStartOnBoot(true);
                 }
             });
 // Set other dialog properties
@@ -155,30 +178,75 @@ public class MiddleFragment extends Fragment {
         //listview.setAdapter(adapter);
 
 
-        MaxLabel = (TextView) view.findViewById(R.id.MaxLength);
-        CurrentLength = (TextView) view.findViewById(R.id.CurrentLength);
+        maxLabel = (TextView) view.findViewById(R.id.MaxLength);
+        currentLength = (TextView) view.findViewById(R.id.CurrentLength);
         timeLabel = (TextView) view.findViewById(R.id.timeLabel);
         seekBar = (SeekBar) view.findViewById(R.id.seekBar);
         button = (Button) view.findViewById(R.id.Button);
-        seekBar.setProgress(HelperClass.getAMOUNT());
-        timeLabel.setText(String.valueOf(HelperClass.getAMOUNT() + " minutes"));
+        seekBar.setProgress(mainApplication.getAMOUNT());
+        status = (TextView) view.findViewById(R.id.status);
+        timeLabel.setText(String.valueOf(mainApplication.getAMOUNT() + " minutes"));
+        helpButton = (Button) view.findViewById(R.id.helpButtonMiddle);
+        goProButton = (Button) view.findViewById(R.id.goProButtonMiddle);
+        helpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String helpMessage = "WARNING: Using the task manager to close the application will temporarily interrupt the recording of audio. Interuptting the audio recording via the task manager or settings menu will not wipe the audio buffer. So if you save a file in which the recording was interrupted the audio will skip from where the recording was paused to when it was resumed.\n" +
+                        "Retroactive Recording is a retroactive audio recording app. The app is constantly recording audio while it is activated but only ever keeps the most recent 1 to 30 minutes of data." +
+                        " At any time you can tap the save audio button on the main screen to save previously recorded audio. For example, if you turn the app on in the beginning of the day, keep it on and later in the day, someone says something that you want a recording of, you can tap the save audio button and your device will store the past 1 to 30 minutes in a WAV audio file for later listening." +
+                        " While the app is constantly recording audio, it will only occupy up to 30 minutes worth of audio data in the memory." +
+                        " In the event that your device runs out of storage space the app will cease to operate.";
+                //startActivity(new Intent(getContext(), HelpActivity.class));
+                android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(getContext());
+// Add the buttons
+                builder.setMessage(helpMessage);
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked OK button
+                    }
+                });
+// Set other dialog properties
+
+// Create the AlertDialog
+                android.support.v7.app.AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+        goProButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.hughes.retrorecordpro")));
+                } catch (android.content.ActivityNotFoundException anfe) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.hughes.retrorecordpro")));
+                }
+            }
+        });
+        if(mainApplication.getAMOUNT() == 1){
+            timeLabel.setText(mainApplication.getAMOUNT() + " minute");
+        }
         mHandler.post(onEverySecond);
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (progress >= 1) {
-                    HelperClass.setAMOUNT(progress);
-                    timeLabel.setText(String.valueOf(HelperClass.getAMOUNT() + " minutes"));
+                    mainApplication.setAMOUNT(progress);
+                    timeLabel.setText(String.valueOf(mainApplication.getAMOUNT() + " minutes"));
+                    if(mainApplication.getAMOUNT() == 1){
+                        timeLabel.setText(mainApplication.getAMOUNT() + " minute");
+                    }
                 } else {
                     seekBar.setProgress(1);
                 }
-                if (progress < HelperClass.getTIME()) {
-                    HelperClass.setAMOUNT(progress);
-                    timeLabel.setText(String.valueOf(HelperClass.getAMOUNT() + " minutes"));
-
+                if (progress < mainApplication.getTIME()) {
+                    mainApplication.setAMOUNT(progress);
+                    timeLabel.setText(String.valueOf(mainApplication.getAMOUNT() + " minutes"));
+                    if(mainApplication.getAMOUNT() == 1){
+                        timeLabel.setText(mainApplication.getAMOUNT() + " minute");
+                    }
                 } else {
-                    seekBar.setProgress(HelperClass.getTIME());
+                    seekBar.setProgress(mainApplication.getTIME());
                 }
                 refresh();
             }
@@ -196,7 +264,7 @@ public class MiddleFragment extends Fragment {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getAudio();
+                BytesToFile.getInstance(getContext()).saveAudio(getActivity());
             }
         });
         refresh();
@@ -204,71 +272,47 @@ public class MiddleFragment extends Fragment {
         return view;
     }
 
+    public static String repeat(int count, String with) {
+        return new String(new char[count]).replace("\0", with);
+    }
+
+    public static String secondsToString(int pTime) {
+        pTime *= 1;
+        return String.format("%02d:%02d", pTime / 60, pTime % 60);
+    }
+
+    public static String secondsToString(long pTime) {
+        pTime *= 1;
+        return String.format("%02d:%02d", pTime / 60, pTime % 60);
+    }
+
     public void refresh() {
-        button.setText("click here to save the buffer of the past.");
         long folder_length = 0;
         try {
             folder_length = BytesToFile.getInstance(getContext()).getLengthOfHash();
         } catch (Exception e) {
-            e.printStackTrace();
             folder_length = 0;
-
         }
-        latest = folder_length;
-        if(latest != first) button.setText("Recording...\n\nClick to save the current buffer.");
-        else button.setText("Click to save the current buffer.\nNot Recording...");
-        first = latest;
-        double di = (double)HelperClass.getSAMPLERATE() / (double)41000;
-        double div = (double)folder_length / (HelperClass.rateToByte(HelperClass.getSAMPLERATE()) / (double)60);
-        int currentSeconds = (int) Math.round(div);
-        if (HelperClass.getTIME() * 60 < currentSeconds) {
-            currentSeconds = HelperClass.getTIME() * 60;
+        timeInBuffer = BytesToFile.getInstance(getContext()).convertLengthToSeconds(folder_length);
+        currentLength.setText ( secondsToString ( Math.min ( mainApplication.getTIME() * 60, timeInBuffer ) ) );
+        maxLabel.setText(secondsToString(mainApplication.getTIME() * 60));
+        timeLabel.setText(String.valueOf((mainApplication.getAMOUNT()) + " minutes"));
+        if(mainApplication.getAMOUNT() == 1){
+            timeLabel.setText(mainApplication.getAMOUNT() + " minute");
         }
-        String minutes = String.valueOf(currentSeconds / 60);
-        String seconds = String.valueOf(currentSeconds % 60);
-        if (minutes.length() == 1) minutes = "0" + minutes;
-        if (seconds.length() == 1) seconds = "0" + seconds;
-        CurrentLength.setText(minutes + ":" + seconds);
-        MaxLabel.setText(String.valueOf(HelperClass.getTIME()) + ":00");
-        timeLabel.setText(String.valueOf(HelperClass.getAMOUNT() + " minutes"));
-        if (HelperClass.isServiceRunning()) {
-            button.setEnabled(true);
+        if (mainApplication.isServiceRunning()) {
+            periods += 1;
+            if(periods > 3) periods = 0;
+            status.setText("Recording" + repeat(periods, "."));
         } else {
-            button.setText("Activate the background listening in the settings.");
-            button.setEnabled(false);
+            status.setText("Activate recording in the settings");
         }
-//        fileList.clear();
-//        if(new File(getFilesDir() + "/magic/").isDirectory() && new File(getFilesDir() + "/magic/").listFiles().length > 0) {
-//            List<File> pcms = Arrays.asList(new File(getFilesDir() + "/magic/").listFiles());
-//            Collections.sort(pcms);
-//            for (File file : pcms) {
-//                fileList.add(file.getName());
-//            }
-//            adapter.notifyDataSetChanged();
-//        }
-        if(seekBar.getProgress() > HelperClass.getTIME()){
-            seekBar.setProgress(HelperClass.getTIME());
-            timeLabel.setText(String.valueOf(HelperClass.getTIME() + " minutes"));
-        }
-    }
-
-    public void getAudio() {
-        File file_raw = new File(getcontext().getFilesDir() + "/buffer.raw");
-        if (!file_raw.exists()) {
-            return;
-        }
-        File file_wav = new File(HelperClass.generateStamp());
-        if (file_wav.exists()) {
-            file_wav.delete();
-        }
-
-        try {
-            new ProgressPCM(WavAudioFormat.mono16Bit(Math.round(HelperClass.getSAMPLERATE())), file_raw, file_wav, HelperClass.getAMOUNT(), Math.round(HelperClass.getSAMPLERATE()), getActivity().getApplicationContext(), getActivity()).execute();
-            //new WavMaker(getcontext(), HelperClass.getTIME(MainActivity.this)).get();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-
+        if(seekBar.getProgress() > mainApplication.getTIME()){
+            seekBar.setProgress(mainApplication.getTIME());
+            timeLabel.setText(String.valueOf(mainApplication.getTIME() + " minutes"));
+            if(mainApplication.getTIME() == 1){
+                timeLabel.setText(mainApplication.getTIME() + " minute");
+            }
         }
     }
 
@@ -282,17 +326,6 @@ public class MiddleFragment extends Fragment {
             mListener.onFragmentInteraction(uri);
         }
     }
-
-//    @Override
-//    public void onAttach(Context context) {
-//        super.onAttach(context);
-//        if (context instanceof OnFragmentInteractionListener) {
-//            mListener = (OnFragmentInteractionListener) context;
-//        } else {
-//            throw new RuntimeException(context.toString()
-//                    + " must implement OnFragmentInteractionListener");
-//        }
-//    }
 
     @Override
     public void onDetach() {

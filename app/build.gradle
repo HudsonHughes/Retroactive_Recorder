@@ -46,8 +46,6 @@ dependencies {
     compile 'com.github.pwittchen:prefser:2.0.6'
     compile 'io.reactivex:rxandroid:1.1.0'
     compile "commons-io:commons-io:+"
-    compile ('com.turhanoz.android:reactivedirectorychooser:0.0.13@aar'){
-        transitive=true
-    }
+    compile 'com.obsez.android.lib.filechooser:filechooser:1.1.4'
     testCompile 'junit:junit:4.12'
 }

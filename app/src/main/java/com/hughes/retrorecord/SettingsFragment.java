@@ -2,20 +2,19 @@ package com.hughes.retrorecord;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.RadioButton;
@@ -27,10 +26,7 @@ import android.widget.Toast;
 
 import com.hughes.retrorecord.messages.MessageEvent;
 import com.hughes.retrorecord.recording.BytesToFile;
-import com.turhanoz.android.reactivedirectorychooser.event.OnDirectoryCancelEvent;
-import com.turhanoz.android.reactivedirectorychooser.event.OnDirectoryChosenEvent;
-import com.turhanoz.android.reactivedirectorychooser.ui.DirectoryChooserFragment;
-import com.turhanoz.android.reactivedirectorychooser.ui.OnDirectoryChooserFragmentInteraction;
+import com.obsez.android.lib.filechooser.ChooserDialog;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -41,16 +37,8 @@ import java.io.File;
 import butterknife.ButterKnife;
 
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link SettingsFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link SettingsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class SettingsFragment extends Fragment implements
-        OnDirectoryChooserFragmentInteraction {
+public class SettingsFragment extends Fragment {
+
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -59,8 +47,6 @@ public class SettingsFragment extends Fragment implements
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-
-    private OnFragmentInteractionListener mListener;
 
     public SettingsFragment() {
         // Required empty public constructor
@@ -91,21 +77,15 @@ public class SettingsFragment extends Fragment implements
     Button BufferSizeButton;
     Button DeleteButton;
     Button DirectoryButton;
+    Button helpButton;
+    Button goProButton;
     TextView pathView;
     TextView sampleView;
     MainApplication mainApplication;
-    @Override
-    public void onEvent(OnDirectoryChosenEvent event) {
-        File directoryChosenByUser = event.getFile();
-        mainApplication.setRecordingDirectory(event.getFile().getPath());
-        pathView.setText(mainApplication.getRecordingDirectory());
+
+    public Context getContext(){
+        return getActivity();
     }
-
-    @Override
-    public void onEvent(OnDirectoryCancelEvent onDirectoryCancelEvent) {
-
-    }
-
 
     @Override
     public void onStart() {
@@ -145,7 +125,43 @@ public class SettingsFragment extends Fragment implements
         pathView.setText(mainApplication.getRecordingDirectory());
         sampleView = (TextView) view.findViewById(R.id.SampleView);
         sampleView.setText("Sampling Rate:" + String.valueOf(mainApplication.getSAMPLERATE()));
-        refreshh();
+        helpButton = (Button) view.findViewById(R.id.helpButtonSettings);
+        goProButton = (Button) view.findViewById(R.id.goProButtonSettings);
+        helpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String helpMessage = "WARNING: Using the task manager to close the application will temporarily interrupt the recording of audio. Interuptting the audio recording via the task manager or settings menu will not wipe the audio buffer. So if you save a file in which the recording was interrupted the audio will skip from where the recording was paused to when it was resumed.\n" +
+                        "Retroactive Recording is a retroactive audio recording app. The app is constantly recording audio while it is activated but only ever keeps the most recent 1 to 30 minutes of data." +
+                        " At any time you can tap the save audio button on the main screen to save previously recorded audio. For example, if you turn the app on in the beginning of the day, keep it on and later in the day, someone says something that you want a recording of, you can tap the save audio button and your device will store the past 1 to 30 minutes in a WAV audio file for later listening." +
+                        " While the app is constantly recording audio, it will only occupy up to 30 minutes worth of audio data in the memory." +
+                        " In the event that your device runs out of storage space the app will cease to operate.";
+                //startActivity(new Intent(getContext(), HelpActivity.class));
+                android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(getContext());
+// Add the buttons
+                builder.setMessage(helpMessage);
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked OK button
+                    }
+                });
+// Set other dialog properties
+
+// Create the AlertDialog
+                android.support.v7.app.AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+        goProButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.hughes.retrorecordpro")));
+                } catch (android.content.ActivityNotFoundException anfe) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.hughes.retrorecordpro")));
+                }
+            }
+        });
+        refreshViews();
         toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -163,20 +179,18 @@ public class SettingsFragment extends Fragment implements
 // 3. Get the AlertDialog from create()
                 AlertDialog dialog = builder.create();
                 Intent intent = new Intent(getActivity().getApplicationContext(), ByteRecorder.class);
-                SharedPreferences settings = getContext().getSharedPreferences("AppOn", 0);
                 if (isChecked) {
                     if(mainApplication.getMicrophoneAvailable()) {
                         getContext().startService(intent);
-                        settings.edit().putBoolean("AppOn", true).commit();
-                        Log.d("Hudson Hughes", String.valueOf(settings.getBoolean("AppOn", false)));
+                        new MainApplication(getContext()).setStartOnBoot(true);
                     }else{
                         dialog.show();
                     }
                 } else {
                     getContext().stopService(intent);
-                    settings.edit().putBoolean("AppOn", false).commit();
+                    new MainApplication(getContext()).setStartOnBoot(false);
                 }
-                refreshh();
+                refreshViews();
             }
         });
         DeleteButton.setOnClickListener(new View.OnClickListener() {
@@ -210,7 +224,12 @@ public class SettingsFragment extends Fragment implements
                 if (mainApplication.isServiceRunning()) {
                     Toast.makeText(getContext(), "Cannot change while background recording is active.", Toast.LENGTH_SHORT).show();
                 } else {
+
                     final Dialog dialog = new Dialog(getContext());
+                    WindowManager.LayoutParams lp = new        WindowManager.LayoutParams();
+                    lp.copyFrom(dialog.getWindow().getAttributes());
+                    lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+                    lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
                     dialog.setContentView(R.layout.seekbarlayout);
                     dialog.setTitle("Set a buffer size");
                     dialog.setCancelable(true);
@@ -222,12 +241,21 @@ public class SettingsFragment extends Fragment implements
                         public void onClick(View v) {
                             mainApplication.setTIME(seekBar.getProgress());
                             BufferSizeLabel.setText(mainApplication.getTIME() + " minutes");
+                            if(mainApplication.getTIME() == 1){
+                                BufferSizeLabel.setText(mainApplication.getTIME() + " minute");
+                            }
                             //BufferSizeLabel.setText(mainApplication.getTIME(getApplicationContext()) + " minutes");
                             dialog.cancel();
                         }
                     });
                     BufferSizeLabel.setText(String.valueOf(mainApplication.getTIME() + " minutes"));
+                    if(mainApplication.getTIME() == 1){
+                        BufferSizeLabel.setText(mainApplication.getTIME() + " minute");
+                    }
                     BufferSieLabel.setText(String.valueOf(mainApplication.getTIME() + " minutes"));
+                    if(mainApplication.getTIME() == 1){
+                        BufferSieLabel.setText(mainApplication.getTIME() + " minute");
+                    }
                     seekBar.setProgress(mainApplication.getTIME());
                     seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
@@ -240,9 +268,15 @@ public class SettingsFragment extends Fragment implements
                                 //mainApplication.setTIME(getApplicationContext(), progress);
                             }
                             //mainApplication.setAMOUNT(getApplicationContext(), mainApplication.getTIME(getApplicationContext()));
-                            BufferSieLabel.setText(seekBar.getProgress() + " minutes");
-                            BufferSizeLabel.setText(mainApplication.getTIME() + " minutes");
-                            refreshh();
+                            BufferSizeLabel.setText(String.valueOf(mainApplication.getTIME() + " minutes"));
+                            if(mainApplication.getTIME() == 1){
+                                BufferSizeLabel.setText(mainApplication.getTIME() + " minute");
+                            }
+                            BufferSieLabel.setText(String.valueOf(seekBar.getProgress() + " minutes"));
+                            if(seekBar.getProgress() == 1){
+                                BufferSieLabel.setText(seekBar.getProgress() + " minute");
+                            }
+                            refreshViews();
                         }
 
                         @Override
@@ -255,6 +289,7 @@ public class SettingsFragment extends Fragment implements
 
                         }
                     });
+                    dialog.getWindow().setAttributes(lp);
                     dialog.show();
                 }
             }
@@ -264,9 +299,25 @@ public class SettingsFragment extends Fragment implements
             @Override
             public void onClick(View v) {
                 File currentRootDirectory = Environment.getExternalStorageDirectory();
-                DirectoryChooserFragment directoryChooserFragment = DirectoryChooserFragment.newInstance(currentRootDirectory);
-                FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
-                directoryChooserFragment.show(transaction, "RDC");
+                new ChooserDialog().with(getContext())
+                        .withFilter(true, false)
+                        .withStartFile( new File(mainApplication.getRecordingDirectory()).getParentFile().getAbsolutePath() )
+                        .withChosenListener(new ChooserDialog.Result() {
+                            @Override
+                            public void onChoosePath(String path, File pathFile) {
+                                File f = new File(path);
+                                if(f.canWrite()) {
+                                    mainApplication.setRecordingDirectory(path);
+                                    pathView.setText(path);
+                                } else {
+                                    // no write access
+                                    Toast.makeText(getContext(), "Can't write to this folder. Pick another.", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        })
+                        .build()
+                        .show();
+
             }
         });
 
@@ -377,7 +428,7 @@ public class SettingsFragment extends Fragment implements
                             }
                             sampleView.setText("Sampling Rate:" + String.valueOf(mainApplication.getSAMPLERATE()));
                             dialog.cancel();
-                            refreshh();
+                            refreshViews();
                         }
                     });
 
@@ -390,14 +441,16 @@ public class SettingsFragment extends Fragment implements
 
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
+
     }
 
-    public void refreshh(){
+    public void refreshViews(){
         toggle.setChecked(mainApplication.isServiceRunning());
         BufferSizeLabel.setText(mainApplication.getTIME() + " minutes");
+        BufferSizeLabel.setText(String.valueOf(mainApplication.getTIME() + " minutes"));
+        if(mainApplication.getTIME() == 1){
+            BufferSizeLabel.setText(mainApplication.getTIME() + " minute");
+        }
         sampleView.setText("Sampling Rate:" + String.valueOf(mainApplication.getSAMPLERATE()));
     }
 
@@ -415,21 +468,5 @@ public class SettingsFragment extends Fragment implements
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
-    }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
     }
 }

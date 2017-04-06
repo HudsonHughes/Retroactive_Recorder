@@ -1,7 +1,7 @@
 package com.hughes.retrorecord.recording;
 
+import android.app.Activity;
 import android.content.Context;
-import android.media.AudioFormat;
 
 import com.github.pwittchen.prefser.library.Prefser;
 import com.hughes.retrorecord.MainApplication;
@@ -12,11 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class BytesToFile {
@@ -38,6 +35,10 @@ public class BytesToFile {
         context = ctx;
         prefs = new Prefser(context);
         mainApplication = new MainApplication(ctx);
+    }
+
+    public void saveAudio(Activity activity){
+            new SaveAudio(activity).execute();
     }
 
     public void removeFileFromHash(String name){
@@ -76,7 +77,10 @@ public class BytesToFile {
     }
 
     public void trimHash(){
+        long current = convertLengthToSeconds(getLengthOfHash());
+        int max = (mainApplication.getTIME() + 1) * 60;
         while(convertLengthToSeconds(getLengthOfHash()) > (mainApplication.getTIME() + 1) * 60){
+            Log.d("Hudson", "Deleted File");
             removeOldestFromHash();
         }
     }
@@ -85,8 +89,8 @@ public class BytesToFile {
         return context.getFilesDir() + "/magic/";
     }
 
-    public Integer convertLengthToSeconds(Integer length){
-        return length / getBytesPerSecond();
+    public long convertLengthToSeconds(long length){
+        return 2 * length / getBytesPerSecond();
     }
 
     public Integer convertSecondsToLength(Integer seconds){
