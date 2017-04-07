@@ -10,9 +10,11 @@ import android.os.Build;
 import android.os.IBinder;
 import android.widget.Toast;
 
+import com.hughes.retrorecord.messages.RecorderErrorMessage;
 import com.hughes.retrorecord.messages.ShutdownEvent;
 import com.hughes.retrorecord.recording.PcmAudioRecorder;
 
+import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
@@ -27,9 +29,18 @@ public class ByteRecorder extends Service {
 
     };
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onRecorderErrorMessage(RecorderErrorMessage recorderErrorMessage) {
+        mRecorder.stop();
+        mRecorder.release();
+        cancelNotification();
+        stopSelf();
+    };
+
     @Override
     public void onCreate() {
         context = this;
+        EventBus.getDefault().register(this);
         mNM = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mRecorder = PcmAudioRecorder.getInstance(context);
 
@@ -41,6 +52,8 @@ public class ByteRecorder extends Service {
                 mRecorder.release();
                 stopSelf();
                 return;
+            }else {
+                showNotification();
             }
         } else if (PcmAudioRecorder.State.ERROR == mRecorder.getState()) {
             mRecorder.release();
@@ -49,7 +62,6 @@ public class ByteRecorder extends Service {
             mRecorder.stop();
             mRecorder.reset(context);
         }
-        showNotification();
 
     }
 
@@ -77,16 +89,16 @@ public class ByteRecorder extends Service {
             mRecorder.release();
         }
         cancelNotification();
+        EventBus.getDefault().unregister(this);
     }
     private void showNotification() {
         Intent intent = new Intent(context, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(context,
                 NOTIFICATION, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder builder = new Notification.Builder(context)
-                .setContentTitle("Retroactive Recorder")
                 .setContentText("Currently Recording")
                 .setContentIntent(pendingIntent)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
                 ;
         Notification n;
 

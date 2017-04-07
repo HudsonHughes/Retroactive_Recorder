@@ -10,4 +10,5 @@
     <string name="permission_denied_message"><![CDATA[All requested permissions must be granted for this app to work. You can grant these permissions in the Settings > Apps > Retroactive Recorder.]]></string>
     <string name="open_settings">Go to Settings</string>
     <string name="quit_app">Just Leave</string>
+    <string name="banner_ad_unit_id">ca-app-pub-4453555356767766/2017210335</string>
 </resources>

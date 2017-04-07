@@ -15,6 +15,9 @@ import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.hughes.retrorecord.messages.MessageEvent;
 import com.hughes.retrorecord.recording.BytesToFile;
 
@@ -86,6 +89,7 @@ public class MiddleFragment extends Fragment {
     int periods = 0;
     long timeInBuffer = 0;
     int lengthOfBuffer = 0;
+    private AdView mAdView;
     private OnFragmentInteractionListener mListener;
 
     public MiddleFragment() {
@@ -177,6 +181,11 @@ public class MiddleFragment extends Fragment {
         // Assign adapter to ListView
         //listview.setAdapter(adapter);
 
+        MobileAds.initialize(getContext().getApplicationContext(), "ca-app-pub-4453555356767766~9540477131");
+
+        mAdView = (AdView) view.findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().addTestDevice("EF3C4EA50D9A23EB0C4FF9BE3ABF03B1").build();
+        mAdView.loadAd(adRequest);
 
         maxLabel = (TextView) view.findViewById(R.id.MaxLength);
         currentLength = (TextView) view.findViewById(R.id.CurrentLength);

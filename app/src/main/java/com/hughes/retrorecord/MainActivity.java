@@ -4,8 +4,10 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PermissionInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -15,8 +17,12 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 import com.hughes.retrorecord.messages.MessageEvent;
 import com.hughes.retrorecord.playback.PlaybackFragment;
+import com.hughes.retrorecord.technology.Log;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -30,12 +36,15 @@ import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
 import permissions.dispatcher.OnShowRationale;
 import permissions.dispatcher.PermissionRequest;
+import permissions.dispatcher.RuntimePermissions;
 
+@RuntimePermissions
 public class MainActivity extends AppCompatActivity {
 
     private Toolbar toolbar;
     private TabLayout tabLayout;
     private ViewPager viewPager;
+
     public Context context;
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -64,29 +73,40 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(false);
-        
-        getWritePermission();
-        getRecordPermission();
-        getReadPermission();
-        getBootPermission();
+        MainActivityPermissionsDispatcher.getPermissionsWithCheck(this);
         viewPager = (ViewPager) findViewById(R.id.viewpager);
         setupViewPager(viewPager);
 
         tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
+
+
     }
 
-    @NeedsPermission(Manifest.permission.RECORD_AUDIO)
-    private void getRecordPermission() {}
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // NOTE: delegate the permission handling to generated method
+        MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
+        for(int i = 0; i < grantResults.length; i++){
+            if(grantResults[i] == -1){
+                leaveApp();
+            }
+        }
+    }
+
+    @NeedsPermission({Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.RECEIVE_BOOT_COMPLETED, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void getPermissions() {
+
+    }
     @OnShowRationale(Manifest.permission.RECORD_AUDIO)
-    void showRationaleForRecord(final PermissionRequest request) {request.proceed();}
+    void showRationaleForRecord(final PermissionRequest request) {
+        Log.d("Hudson", "Get Permission");request.proceed();}
     @OnPermissionDenied(Manifest.permission.RECORD_AUDIO)
     void onDeniedRecord() {leaveApp();}
     @OnNeverAskAgain(Manifest.permission.RECORD_AUDIO)
     void onNeverAskRecord() {leaveApp();}
 
-    @NeedsPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-    private void getReadPermission() {}
     @OnShowRationale(Manifest.permission.READ_EXTERNAL_STORAGE)
     void showRationaleForRead(final PermissionRequest request) {request.proceed();}
     @OnPermissionDenied(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -94,8 +114,6 @@ public class MainActivity extends AppCompatActivity {
     @OnNeverAskAgain(Manifest.permission.READ_EXTERNAL_STORAGE)
     void onNeverAskRead() {leaveApp();}
 
-    @NeedsPermission(Manifest.permission.RECEIVE_BOOT_COMPLETED)
-    private void getBootPermission() {}
     @OnShowRationale(Manifest.permission.RECEIVE_BOOT_COMPLETED)
     void showRationaleForBoot(final PermissionRequest request) {request.proceed();}
     @OnPermissionDenied(Manifest.permission.RECEIVE_BOOT_COMPLETED)
@@ -103,8 +121,6 @@ public class MainActivity extends AppCompatActivity {
     @OnNeverAskAgain(Manifest.permission.RECEIVE_BOOT_COMPLETED)
     void onNeverAskBoot() {leaveApp();}
 
-    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    private void getWritePermission() {}
     @OnShowRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     void showRationaleForWrite(final PermissionRequest request) {request.proceed();}
     @OnPermissionDenied(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -116,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.permission_denied_title)
                 .setMessage(R.string.permission_denied_message)
+                .setCancelable(false)
                 .setPositiveButton(R.string.open_settings, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {

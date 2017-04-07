@@ -169,7 +169,7 @@ public class SettingsFragment extends Fragment {
 
 // 2. Chain together various setter methods to set the dialog characteristics
                 builder.setTitle("Alert")
-                        .setMessage("Another app is using the microphone. Kill it before starting this one.").setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        .setMessage("Either you havent granted this app microphone permissions or another app is using the microphone. Kill it before starting this one.").setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 

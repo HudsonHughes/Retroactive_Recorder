@@ -8,6 +8,9 @@ import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
 
 import com.hughes.retrorecord.MainApplication;
+import com.hughes.retrorecord.messages.RecorderErrorMessage;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
 import java.io.IOException;
@@ -150,6 +153,7 @@ public class PcmAudioRecorder {
                 Log.e(PcmAudioRecorder.class.getName(), "Unknown error occured while initializing recording");
             }
             state = State.ERROR;
+            EventBus.getDefault().post(new RecorderErrorMessage());
         }
     }
 
@@ -170,11 +174,13 @@ public class PcmAudioRecorder {
                 } else {
                     Log.e(PcmAudioRecorder.class.getName(), "prepare() method called on uninitialized recorder");
                     state = State.ERROR;
+                    EventBus.getDefault().post(new RecorderErrorMessage());
                 }
             } else {
                 Log.e(PcmAudioRecorder.class.getName(), "prepare() method called on illegal state");
                 release();
                 state = State.ERROR;
+                EventBus.getDefault().post(new RecorderErrorMessage());
             }
         } catch(Exception e) {
             if (e.getMessage() != null) {
@@ -183,6 +189,7 @@ public class PcmAudioRecorder {
                 Log.e(PcmAudioRecorder.class.getName(), "Unknown error occured in prepare()");
             }
             state = State.ERROR;
+            EventBus.getDefault().post(new RecorderErrorMessage());
         }
     }
 
@@ -268,6 +275,7 @@ public class PcmAudioRecorder {
         } else {
             Log.e(PcmAudioRecorder.class.getName(), "start() called on illegal state");
             state = State.ERROR;
+            EventBus.getDefault().post(new RecorderErrorMessage());
         }
     }
 
@@ -295,10 +303,12 @@ public class PcmAudioRecorder {
         {
             while (state == State.RECORDING)
             {
-                audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
+
                 try {
+                    audioRecorder.read(buffer, 0, buffer.length); // read audio data to buffer
                     BytesToFile.getInstance(context).writeToFile(buffer);
                 } catch (IOException e) {
+                    EventBus.getDefault().post(new RecorderErrorMessage());
                     Log.e(PcmAudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
                     e.printStackTrace();
                 }

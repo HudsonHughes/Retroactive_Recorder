@@ -90,7 +90,7 @@ public class SaveAudio extends AsyncTask<Void, Void, String> {
             activity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(context, "Save failed. Make sure there is enough space available.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Save failed. Make sure there is enough space available.", Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -122,13 +122,6 @@ public class SaveAudio extends AsyncTask<Void, Void, String> {
         }
         final BytesToFile bytesToFile = BytesToFile.getInstance(context);
         if(bytesToFile.convertLengthToSeconds(bytesToFile.getLengthOfHash()) < mainApplication.getAMOUNT() * 60){
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(context, "Saving the " + bytesToFile.convertLengthToSeconds(bytesToFile.getLengthOfHash()) + " in the buffer", Toast.LENGTH_LONG).show();
-
-                }
-            });
 
         }
         try {
